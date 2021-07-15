@@ -1,0 +1,7 @@
+pycurl
+certifi
+io
+urllib
+json
+inspect
+pyzotero
