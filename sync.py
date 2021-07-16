@@ -65,12 +65,14 @@ def main():
 
 
 def validate_result(result):
+    # print(result)
     if result[0]["success"] != True:
         print("Error:", getframeinfo(stack()[1][0]), result)
         exit()
 
 
 def make_api_call(post_data):
+    # print(post_data)
     buffer = BytesIO()
     c = pycurl.Curl()
     c.setopt(pycurl.URL, "https://ecode.fibery.io/api/commands")
@@ -81,13 +83,14 @@ def make_api_call(post_data):
     # Sets request method to POST,
     # Content-Type header to application/x-www-form-urlencoded
     # and data to send in request body.
-    c.setopt(c.POSTFIELDS, post_data)
+    c.setopt(c.POSTFIELDS, post_data.encode(encoding='UTF-8', errors='replace'))
     c.setopt(pycurl.HTTPHEADER, ['Authorization: Token ' + fibery_token, 'Content-Type: application/json'])
     c.perform()
     body = buffer.getvalue()
     body = body.decode('iso-8859-1')
     data = json.loads(body)
     # s = json.dumps(data, indent=4, sort_keys=True)
+    validate_result(data)
     return data
 
 
@@ -99,7 +102,7 @@ def get_lit():
 
     lit_dict = {}
     for item in lit[0]["result"]:
-        print(item)
+        # print(item)
         lit_dict[item["Zotero/Zotero Key"]] = item
 
     return lit_dict
@@ -113,16 +116,13 @@ def get_authors():
 
     author_dict = {}
     for item in authors[0]["result"]:
-        print(item)
+        # print(item)
         first = item["Zotero/First name"]
         last = item["Zotero/Last name"]
         if last not in author_dict:
             author_dict[last] = {}
         if first not in author_dict[last]:
             author_dict[last][first] = item
-        else:
-            print("WARNING: You have multiple authors with the name "
-                  + first + " " + last)
 
     return author_dict
 
@@ -132,11 +132,21 @@ def assemble_author_list(item, authors):
     for creator in item["data"]["creators"]:
         if creator["creatorType"] != "author":
             continue
-        last = creator["lastName"]
-        first = creator["firstName"]
+        last = creator["lastName"].strip()
+        first = creator["firstName"].split()[0].strip()
+        
+        # Strip out characters fibery can't handle. This isn't ideal
+        first = ''.join(e for e in first if e.isalnum())
+        last = ''.join(e for e in last if e.isalnum())
+
+        # print(creator)
         if last not in authors or first not in authors[last]:
+            # print(first, "|", last)
             result = make_api_call(f'[{{"command": "fibery.entity/create", "args": {{"type": "Zotero/Author", "entity": {{"Zotero/First name" : "{first}", "Zotero/Last name": "{last}"}}}}}}]')
-            item_authors.append('fibery/id: "' + result[0]["result"]["fibery/id"] + '"')
+            item_authors.append('{"fibery/id": "' + result[0]["result"]["fibery/id"] + '"}')
+            if last not in authors:
+                authors[last] = {}
+            authors[last][first] = result[0]["result"]
         else:
             item_authors.append('{"fibery/id": "' + authors[last][first]["fibery/id"] + '"}')
 
