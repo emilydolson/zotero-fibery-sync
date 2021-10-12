@@ -40,7 +40,9 @@ def main():
         # Update literature
         if item["key"] not in lit:
             if "title" not in item["data"]:
-                item["data"]["title"] = item["key"]
+                item["data"]["title"] = escape(item["key"])
+            else:
+                item["data"]["title"] = escape(item["data"]["title"])
             result = make_api_call(f'[{{"command": "fibery.entity/create", "args": {{"type": "Zotero/Literature", "entity": {{"Zotero/name" : "{item["data"]["title"]}", "Zotero/Zotero Key": "{item["key"]}", "Zotero/Zotero link": "{item["links"]["alternate"]["href"]}", "Zotero/Zotero version": "{item["version"]}" }}}}}}]')
             item_id = result[0]["result"]["fibery/id"]
 
@@ -65,7 +67,7 @@ def main():
 
 
 def validate_result(result):
-    # print(result)
+    print(result)
     if result[0]["success"] != True:
         print("Error:", getframeinfo(stack()[1][0]), result)
         exit()
@@ -151,6 +153,9 @@ def assemble_author_list(item, authors):
             item_authors.append('{"fibery/id": "' + authors[last][first]["fibery/id"] + '"}')
 
     return "[" + ", ".join(item_authors) + "]"
+
+def escape(s):
+    return repr(s).replace('"', '\\\"')    
 
 
 if __name__ == "__main__":
