@@ -155,7 +155,7 @@ def assemble_author_list(item, authors):
     return "[" + ", ".join(item_authors) + "]"
 
 def escape(s):
-    return repr(s).replace('"', '\\\"')    
+    return s.replace('"', '\\\"')    
 
 
 if __name__ == "__main__":
